@@ -1,12 +1,20 @@
+CXX=clang++
+FLAGS=-std=c++14 -Ofast
+SFLAGS=$(FLAGS) -fno-tree-vectorize
+
 all: saxpy saxpy-scalar
 
 saxpy: saxpy.cpp
-	g++ -std=c++14 -O3 saxpy.cpp -o saxpy
+	$(CXX) $(FLAGS) saxpy.cpp -o saxpy
 
 saxpy-scalar: saxpy.cpp
-	g++ -std=c++14 -O3 saxpy.cpp -fno-vectorize -o saxpy-scalar
+	$(CXX) $(SFLAGS) saxpy.cpp -o saxpy-scalar
 
 asm: saxpy.cpp
-	g++ -std=c++14 -O3 -S saxpy.cpp
+	$(CXX) $(FLAGS) -S saxpy.cpp
+
+asm-scalar: saxpy.cpp
+	$(CXX) $(SFLAGS) -S saxpy.cpp
+
 clean:
 	rm -rf *.o *.s saxpy saxpy-scalar
