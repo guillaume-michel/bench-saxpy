@@ -16,6 +16,13 @@
       (setf (aref x i) (random max)))
     x))
 
+(defmacro benchmark (function-name argument-list)
+  "do the function-name with argument-list, return estimate internal-time"
+  `(let ((start (get-internal-real-time)))
+     (funcall ,function-name ,argument-list)
+     (float (/ (- (get-internal-real-time) start) internal-time-units-per-second))
+     ))
+
 (defun bench (valx valy N)
   (let ((z (make-array N :element-type 'single-float :initial-element 0.0))
         (x (make-array N :element-type 'single-float :initial-element valx))
@@ -31,3 +38,5 @@
         (a (random 10.0)))
     (time (saxpy z a x y))
     (aref z 0)))
+
+(bench2 3.6 4.9 1000000000)
