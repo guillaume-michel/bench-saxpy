@@ -2,7 +2,7 @@ CXX=clang++
 FLAGS=-std=c++14 -Ofast
 SFLAGS=$(FLAGS) -fno-tree-vectorize
 
-all: saxpy saxpy-scalar saxpy-nopt
+all: saxpy saxpy-scalar saxpy-nopt ocaml lisp
 
 saxpy: saxpy.cpp
 	$(CXX) $(FLAGS) saxpy.cpp -o saxpy
@@ -19,5 +19,16 @@ asm: saxpy.cpp
 asm-scalar: saxpy.cpp
 	$(CXX) $(SFLAGS) -S saxpy.cpp
 
+ocaml: saxpy.ml
+	corebuild saxpy.native
+
+lisp: saxpy.lisp
+	buildapp --output saxpy_lisp --entry main --load saxpy.lisp
+
+test: all
+	-./saxpy
+	-./saxpy.native
+	-./saxpy_lisp
+
 clean:
-	rm -rf *.o *.s saxpy saxpy-scalar saxpy-nopt
+	rm -rf *.o *.s saxpy saxpy-scalar saxpy-nopt saxpy.native _build saxpy_lisp

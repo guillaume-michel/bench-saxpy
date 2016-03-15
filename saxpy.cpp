@@ -16,8 +16,8 @@ int main(int argc, char *argv[]) {
 
     using Type = float;
 
-    const size_t N = 1000000000;
-    //const size_t N = 1000000;
+    //const size_t N = 1000000000;
+    const size_t N = 10000000;
     std::vector<Type> z(N, 0);
     std::vector<Type> x(N, 1);
     std::vector<Type> y(N, 2);
