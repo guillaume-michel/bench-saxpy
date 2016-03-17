@@ -57,4 +57,4 @@
 (defun main (argv)
   (declare (ignore argv))
   (setf (sb-ext:bytes-consed-between-gcs) (* 14 1024 1024 1024))
-  (bench2 3.6 4.9 10000000))
+  (bench2 3.6 4.9 100000000))

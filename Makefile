@@ -23,7 +23,7 @@ ocaml: saxpy.ml
 	corebuild saxpy.native
 
 lisp: saxpy.lisp
-	buildapp --output saxpy_lisp --entry main --load saxpy.lisp
+	buildapp --output saxpy_lisp --entry main --load saxpy.lisp --dynamic-space-size 14000
 
 test: all
 	-./saxpy

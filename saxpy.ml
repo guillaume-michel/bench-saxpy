@@ -15,7 +15,7 @@ let time f =
 
 
 let bench_saxpy () =
-  let n = 10_000_000 in
+  let n = 100_000_000 in
   let z = Array.create n 0.0 in
   let a = 1.5 in
   let x = Array.create n 5.3 in
