@@ -3,6 +3,7 @@
 #include <chrono>
 #include <iostream>
 #include <iomanip>
+#include <functional>
 
 inline constexpr size_t minimum_common_size() {
     return 0u;
@@ -78,59 +79,138 @@ void saxpy(std::vector<T> &z, const T a, const std::vector<T> &x, const std::vec
     }
 }
 
+template<typename T, typename Lambda>
+std::vector<std::pair<size_t, float>> bench(size_t M, std::vector<size_t> &Ns, Lambda &&lambda) {
+
+    T value = 0; // to avoid optimization of the loop by the compiler
+
+    std::vector<std::pair<size_t, float>> results;
+
+    for (auto N: Ns) {
+        std::vector<T> z(N, 0);
+        std::vector<T> x(N, 1);
+        std::vector<T> y(N, 2);
+        const T a = 2.5;
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t i=0; i<M; ++i) {
+            lambda(z, a, x, y);
+            value += z[0];
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+
+        float duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count()/1e6;
+        //std::cout << N << ", " << std::fixed << std::setprecision(6) << duration/M << " ms" << std::endl;
+
+        results.push_back({N, duration/M});
+    }
+
+    return results;
+}
+
+template<typename T>
+using BenchItemList = std::vector<std::pair<std::string,
+                                            std::function<void (std::vector<T> &z,
+                                                                const T,
+                                                                const std::vector<T> &,
+                                                                const std::vector<T> &)>>>;
+
+template<typename T>
+BenchItemList<T> getBenchItems() {
+    BenchItemList<T> benchItems = {
+        {"C++ standard for loop:",
+         [](std::vector<T> &z, const T a, const std::vector<T> &x, const std::vector<T> &y) {
+                saxpy(z, a, x, y);
+            }
+        },
+        {"C++ zip_with implementation:",
+         [](std::vector<T> &z, const T a, const std::vector<T> &x, const std::vector<T> &y) {
+                zip_with(std::begin(z),
+                         [a](auto xi, auto yi) {
+                             return a*xi + yi;
+                         },
+                         x,
+                         y);
+            }
+        },
+        {"C++ ZipWith implementation:",
+         [](std::vector<T> &z, const T a, const std::vector<T> &x, const std::vector<T> &y) {
+                ZipWith([a](auto xi, auto yi) {
+                        return a*xi + yi;
+                    },
+                    std::begin(z),
+                    std::make_pair(std::begin(x), std::end(x)),
+                    std::make_pair(std::begin(y), std::end(y)));
+            }
+        }
+
+    };
+
+    return benchItems;
+}
+
 int main(int argc, char *argv[]) {
 
     using Type = double;
 
-    //const size_t N = 1000000000;
-    const size_t N = 100000000;
-    std::vector<Type> z(N, 0);
-    std::vector<Type> x(N, 1);
-    std::vector<Type> y(N, 2);
-    const Type a = 2.5;
+    std::string csvSeparator = ", ";
 
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-        saxpy(z, a, x, y);
-        auto end = std::chrono::high_resolution_clock::now();
+    size_t M = 10;
+    std::vector<size_t> Ns = {10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000};
 
-        float duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count()/1e6;
-        std::cout << std::fixed << std::setprecision(6) << duration << " ms" << std::endl;
-        std::cout << "MFLOPS: " << (float)(N*2)/(float)(1000000*duration/1000) << std::endl;
+    auto benchItems = getBenchItems<Type>();
+
+    std::vector<std::string> headers = {"\"Size\""};
+    std::vector<std::pair<size_t, std::vector<float>>> results;
+
+    // init results
+    for (auto N: Ns) {
+        results.push_back({N, std::vector<float>()});
     }
 
-    {
-        std::cout << "zip_with implementation:" << std::endl;
-        auto start = std::chrono::high_resolution_clock::now();
-        zip_with(std::begin(z),
-                 [a](auto xi, auto yi) {
-                     return a*xi + yi;
-                 },
-                 x,
-                 y);
-        auto end = std::chrono::high_resolution_clock::now();
+    for (auto benchItem: benchItems) {
+        std::cout << "Running Benchmark for " << benchItem.first;
+        auto itemResults = bench<Type>(M, Ns, benchItem.second);
 
-        float duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count()/1e6;
-        std::cout << std::fixed << std::setprecision(6) << duration << " ms" << std::endl;
-        std::cout << "MFLOPS: " << (float)(N*2)/(float)(1000000*duration/1000) << std::endl;
+        headers.push_back(std::string("\"") + benchItem.first + " (ms)\"");
+
+        for (size_t i=0; i<itemResults.size(); ++i) {
+            auto N = itemResults[i].first;
+            auto duration = itemResults[i].second;
+            results[i].second.push_back(duration);
+        }
+
+        std::cout << " DONE" << std::endl;
     }
 
-    {
-        std::cout << "ZipWith implementation:" << std::endl;
-        auto start = std::chrono::high_resolution_clock::now();
-        ZipWith([a](auto xi, auto yi) {
-                     return a*xi + yi;
-            },
-            std::begin(z),
-            std::make_pair(std::begin(x), std::end(x)),
-            std::make_pair(std::begin(y), std::end(y)));
+    std::cout << "Results: " << std::endl;
+    // print CSV headers
+    for (size_t i=0; i<headers.size(); ++i) {
+        std::cout << headers[i];
 
-        auto end = std::chrono::high_resolution_clock::now();
-
-        float duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count()/1e6;
-        std::cout << std::fixed << std::setprecision(6) << duration << " ms" << std::endl;
-        std::cout << "MFLOPS: " << (float)(N*2)/(float)(1000000*duration/1000) << std::endl;
+        if (i != headers.size() - 1) {
+            std::cout << csvSeparator;
+        } else {
+            std::cout << std::endl;
+        }
     }
 
-    return (int)z[0]; // this to force the compiler to really compute z
+    // print CSV data
+    for (auto result: results) {
+        auto N = result.first;
+        auto durations = result.second;
+        std::cout << N << csvSeparator;
+
+        for (size_t i=0; i<durations.size(); ++i) {
+            std::cout << std::fixed << std::setprecision(6) << durations[i];
+
+            if (i != durations.size() - 1) {
+                std::cout << csvSeparator;
+            } else {
+                std::cout << std::endl;
+            }
+        }
+    }
+
+    return 0;
 }
