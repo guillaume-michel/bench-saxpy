@@ -80,7 +80,7 @@ void saxpy(std::vector<T> &z, const T a, const std::vector<T> &x, const std::vec
 
 int main(int argc, char *argv[]) {
 
-    using Type = float;
+    using Type = double;
 
     //const size_t N = 1000000000;
     const size_t N = 100000000;
