@@ -73,7 +73,7 @@ void ZipWith(Fun f, OutputIterator out, std::pair<InputIterators, InputIterators
 
 template<typename T>
 void saxpy(std::vector<T> &z, const T a, const std::vector<T> &x, const std::vector<T> &y) {
-
+    asm volatile("MARK:");
     for (size_t i=0; i<x.size(); ++i) {
         z[i] = a*x[i] + y[i];
     }
